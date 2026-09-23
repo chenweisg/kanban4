@@ -1199,9 +1199,11 @@ async function postToFormSubmit(endpoint, payload) {
       referrerPolicy: "no-referrer",
       body: JSON.stringify({ _template: "table", _captcha: "false", _honey: "", ...payload }),
     });
-    if (!res.ok) throw new Error(`FormSubmit failed: ${res.status}`);
-    const json = await res.json();
-    if (json && String(json.success) === "false") throw new Error("FormSubmit rejected the request");
+    const json = await res.json().catch(() => null);
+    const reason = json && typeof json.message === "string" ? json.message : "";
+    if (!res.ok || (json && String(json.success) === "false")) {
+      throw new Error(reason || `FormSubmit failed: HTTP ${res.status}`);
+    }
     return json;
   } finally {
     clearTimeout(timer);
@@ -1240,6 +1242,20 @@ function notifyTaskDone(task, endpoint, fromStatus) {
   });
 }
 
+// Turn FormSubmit's reply into a message that says what to do next
+function emailFailureMessage(err, prefix) {
+  const msg = String((err && err.message) || "");
+  if (/activat/i.test(msg)) {
+    return `${prefix}, but email isn't active yet. Open the "Activate Form" email FormSubmit sent to your inbox (check spam), then try again.`;
+  }
+  if (/web server|HTML file/i.test(msg) || location.protocol === "file:") {
+    return `${prefix}, but emails can't be sent from a local file. Use the website link instead.`;
+  }
+  if (err && err.name === "AbortError") return `${prefix}, but the email service didn't respond in time.`;
+  if (err instanceof TypeError) return `${prefix}, but the email service couldn't be reached. Check your connection.`;
+  return `${prefix}, but the email failed: ${msg.slice(0, 120)}`;
+}
+
 /* ==========================================================================
    "Task done" email: sent the moment a task moves into Done.
    Sends go out one at a time in order, each task emails at most once per
@@ -1269,7 +1285,7 @@ function routeDoneTaskToEmail(task, fromStatus) {
     } catch (err) {
       doneEmail.sent.delete(snapshot.id);              // allow a retry by moving it to Done again
       console.warn("Done notification failed:", err && err.message);
-      showToast(`${snapshot.id} is done, but the completion email failed`, "warning", 6000);
+      showToast(emailFailureMessage(err, `${snapshot.id} is done`), "warning", 9000);
     }
   });
 }
@@ -1376,7 +1392,7 @@ async function handleSubmit(event) {
     showToast(`Email notification sent for ${task.id}`, "info");
   } catch (err) {
     console.warn("Notification failed:", err && err.message);
-    showToast("Card added locally — email notification failed", "warning", 6000);
+    showToast(emailFailureMessage(err, "Card added locally"), "warning", 9000);
   } finally {
     setSubmitting(false);
   }
