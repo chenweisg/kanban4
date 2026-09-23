@@ -481,6 +481,42 @@ button { cursor: pointer; }
 .toast.warning { background: var(--warning-bg); color: var(--warning-ink); }
 .toast.warning::before { background: var(--prio-high); }
 
+/* ==========================================================================
+   9. IT support prompt (shown once after 10 s on the page)
+   ========================================================================== */
+.support-dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+}
+.support-dialog::backdrop { background: rgba(15, 30, 54, .35); }
+.support-dialog h2 { font-family: var(--font-display); font-size: 22px; font-weight: 650; }
+.support-dialog p { margin-top: var(--space-2); color: var(--ink-soft); }
+.hotline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-ctl);
+  background: var(--accent-tint);
+}
+.support-dialog .hotline { color: var(--ink); }
+.hotline a {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--accent);
+  text-decoration: none;
+}
+.hotline a:hover { text-decoration: underline; }
+.support-actions { display: flex; justify-content: flex-end; margin-top: var(--space-5); }
+
 @media (prefers-reduced-motion: reduce) {
   .drawer[open] { animation: none; }
   .bar span, .lane { transition: none; }
@@ -622,6 +658,19 @@ button { cursor: pointer; }
   </form>
 </dialog>
 
+<!-- IT support prompt: opened by startSupportPrompt() after 10 s on the page -->
+<dialog class="support-dialog" id="support-dialog" aria-labelledby="support-title" aria-describedby="support-desc">
+  <h2 id="support-title">Thanks for visiting</h2>
+  <p id="support-desc">Welcome to the CBK Project IT PMO portal. If you need further assistance, call the IT support hotline.</p>
+  <p class="hotline">
+    <span>IT support hotline</span>
+    <a id="support-hotline" href="tel:12345678">12345678</a>
+  </p>
+  <div class="support-actions">
+    <button type="button" class="btn btn-primary" id="support-close-btn">Got it</button>
+  </div>
+</dialog>
+
 <!-- Toast region, announced politely to screen readers -->
 <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
 
@@ -641,6 +690,8 @@ button { cursor: pointer; }
 const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/YOUR_EMAIL@example.com";
 const NOTIFY_TIMEOUT_MS = 15000;
 const NOTIFY_MIN_INTERVAL_MS = 10000; // anti-flood: at most one email every 10 s
+const IT_SUPPORT_HOTLINE = "12345678";
+const SUPPORT_PROMPT_DELAY_MS = 10000; // show the support prompt after 10 s of viewing
 
 /* ==========================================================================
    Reference data (frozen so nothing can tamper with it at runtime)
@@ -1246,6 +1297,41 @@ function openDrawer() {
 function closeDrawer() { document.getElementById("task-drawer").close(); }
 
 /* ==========================================================================
+   IT support prompt: once per page load, after 10 s of the tab being visible.
+   Nothing is stored, so it shows again after a refresh (no persistence by design).
+   ========================================================================== */
+function startSupportPrompt() {
+  const link = document.getElementById("support-hotline");
+  link.textContent = IT_SUPPORT_HOTLINE;
+  link.href = "tel:" + IT_SUPPORT_HOTLINE.replace(/[^\d+]/g, "");
+  document.getElementById("support-close-btn").addEventListener("click", () =>
+    document.getElementById("support-dialog").close());
+
+  const TICK_MS = 1000;
+  let visibleMs = 0;
+  const timer = setInterval(() => {
+    if (document.visibilityState !== "visible") return; // only count time actually on the page
+    visibleMs += TICK_MS;
+    if (visibleMs >= SUPPORT_PROMPT_DELAY_MS) {
+      clearInterval(timer);
+      showSupportPrompt();
+    }
+  }, TICK_MS);
+}
+
+function showSupportPrompt() {
+  const drawer = document.getElementById("task-drawer");
+  // Don't interrupt someone filling in the add-task form; wait until they close it
+  if (drawer.open) {
+    drawer.addEventListener("close", showSupportPrompt, { once: true });
+    return;
+  }
+  const dialog = document.getElementById("support-dialog");
+  if (!dialog.open) dialog.showModal();
+  document.getElementById("support-close-btn").focus();
+}
+
+/* ==========================================================================
    Init
    ========================================================================== */
 function init() {
@@ -1287,6 +1373,7 @@ function init() {
 
   seedTasks();
   renderBoard();
+  startSupportPrompt();
 }
 
 init();
