@@ -17,27 +17,27 @@
 <style>
 /* ==========================================================================
    1. Design tokens
-   Lavender ground, plum ink, one deep-violet accent. Priority colours are
+   Light blue-grey ground, navy ink, one corporate-navy accent. Priority colours are
    semantic and kept separate from the accent.
    ========================================================================== */
 :root {
-  --ground:       #efe9f7;   /* light purple page background */
-  --ground-deep:  #e4dbf1;   /* lane hover / drop target */
+  --ground:       #eef3f9;   /* light corporate blue-grey page background */
+  --ground-deep:  #dde7f3;   /* lane hover / drop target */
   --paper:        #ffffff;
-  --ink:          #221a36;
-  --ink-soft:     #5d5474;
-  --rule:         #d8ccea;
-  --accent:       #4b2a8c;
-  --accent-hover: #3b1f73;
-  --accent-tint:  #f4effb;
+  --ink:          #0f1e36;
+  --ink-soft:     #51607a;
+  --rule:         #cdd9e8;
+  --accent:       #0b3b8c;
+  --accent-hover: #082c6b;
+  --accent-tint:  #eaf0fa;
 
   --prio-critical: #c0262d;
   --prio-high:     #c77700;
   --prio-medium:   #2f5db8;
-  --prio-low:      #7b7390;
+  --prio-low:      #7a8599;
 
-  --st-backlog:  #a597c4;
-  --st-progress: #4b2a8c;
+  --st-backlog:  #8fa1bd;
+  --st-progress: #0b3b8c;
   --st-blocked:  #c0262d;
   --st-done:     #2e7d5b;
 
@@ -56,8 +56,8 @@
 
   --radius-card: 10px;
   --radius-ctl:  6px;
-  --shadow-card: 0 1px 0 rgba(34, 26, 54, .05), 0 8px 18px -10px rgba(75, 42, 140, .35);
-  --shadow-lift: 0 2px 0 rgba(34, 26, 54, .05), 0 14px 28px -12px rgba(75, 42, 140, .45);
+  --shadow-card: 0 1px 0 rgba(15, 30, 54, .05), 0 8px 18px -10px rgba(11, 59, 140, .35);
+  --shadow-lift: 0 2px 0 rgba(15, 30, 54, .05), 0 14px 28px -12px rgba(11, 59, 140, .45);
 
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
@@ -402,9 +402,9 @@ button { cursor: pointer; }
   border: 0;
   background: var(--paper);
   color: var(--ink);
-  box-shadow: -20px 0 40px -20px rgba(34, 26, 54, .45);
+  box-shadow: -20px 0 40px -20px rgba(15, 30, 54, .45);
 }
-.drawer::backdrop { background: rgba(34, 26, 54, .35); }
+.drawer::backdrop { background: rgba(15, 30, 54, .35); }
 .drawer[open] { animation: drawer-in .22s ease-out; }
 @keyframes drawer-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -476,7 +476,7 @@ button { cursor: pointer; }
   box-shadow: var(--shadow-lift);
   font-weight: 600;
 }
-.toast::before { content: ""; flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #b9a6e6; }
+.toast::before { content: ""; flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #9db8e8; }
 .toast.success::before { background: #7fd3a6; }
 .toast.warning { background: var(--warning-bg); color: var(--warning-ink); }
 .toast.warning::before { background: var(--prio-high); }
@@ -661,7 +661,7 @@ const CATEGORIES = Object.freeze([
   "Data", "Compliance", "Vendor",
 ]);
 const PRIORITIES = Object.freeze(["Critical", "High", "Medium", "Low"]);
-const AVATAR_COLORS = Object.freeze(["#4b2a8c", "#6c4bb4", "#2f5db8", "#8a3f8f", "#3e6b5a"]);
+const AVATAR_COLORS = Object.freeze(["#0b3b8c", "#1f5fae", "#3a6f9e", "#5a4f8f", "#2e6b5a"]);
 
 /* ==========================================================================
    State: the single source of truth. The DOM is re-rendered from it.
