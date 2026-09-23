@@ -679,9 +679,9 @@ button { cursor: pointer; }
     <summary>How this page protects your data</summary>
     <ul>
       <li>Nothing is stored: no cookies, local storage or databases. Closing the tab clears everything.</li>
-      <li>The page can only connect to FormSubmit, and only when you add a task. All other outside connections are blocked.</li>
+      <li>The page only sends data to FormSubmit, when you add a task or move one to Done. The WhatsApp button opens WhatsApp only when you choose a question.</li>
       <li>Text you type is cleaned and shown as plain text, so it can never run as code.</li>
-      <li>Email notifications are limited to one every 10 seconds, and are skipped until a real address is configured.</li>
+      <li>New-task emails are limited to one every 10 seconds. Completion emails go out once per task, up to 20 per visit.</li>
     </ul>
   </details>
 </footer>
@@ -825,7 +825,8 @@ button { cursor: pointer; }
 /* ==========================================================================
    CONFIG: change the email address here (one place only)
    ========================================================================== */
-const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/YOUR_EMAIL@example.com";
+// After activation, replace the address with FormSubmit's random alias to keep it out of the public source.
+const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/chenwei.sg@gmail.com";
 const NOTIFY_TIMEOUT_MS = 15000;
 const NOTIFY_MIN_INTERVAL_MS = 10000; // anti-flood: at most one email every 10 s
 const IT_SUPPORT_HOTLINE = "12345678";
@@ -1155,9 +1156,12 @@ function moveTask(id, newStatus, focusSelector) {
   if (!task || !STATUSES.includes(newStatus)) return;
   state.ui.moveMenuId = null;
   if (task.status === newStatus) { renderBoard(focusSelector); return; }
+  const fromStatus = task.status;
   task.status = newStatus;
   renderBoard(focusSelector);
   showToast(`${id} moved to ${newStatus}`, "info");
+  // Route completed tasks to the configured email immediately (drag and drop or Move menu)
+  if (newStatus === "Done") routeDoneTaskToEmail(task, fromStatus);
 }
 
 function deleteTask(id) {
@@ -1183,7 +1187,7 @@ function showToast(message, type = "success", duration = 4500) {
 /* ==========================================================================
    FormSubmit: AJAX JSON notification (never blocks or breaks the board)
    ========================================================================== */
-async function notifyNewTask(task, endpoint) {
+async function postToFormSubmit(endpoint, payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), NOTIFY_TIMEOUT_MS);
   try {
@@ -1193,22 +1197,7 @@ async function notifyNewTask(task, endpoint) {
       signal: controller.signal,
       credentials: "omit",
       referrerPolicy: "no-referrer",
-      body: JSON.stringify({
-        _subject: forEmail(`[CBK Project IT PMO] New task ${task.id}: ${task.title}`),
-        _template: "table",
-        _captcha: "false",
-        _honey: "",
-        "Task ID": task.id,
-        Title: forEmail(task.title),
-        Description: forEmail(task.description),
-        Project: task.project,
-        Category: task.category,
-        Assignee: forEmail(task.assignee),
-        Priority: task.priority,
-        "Due Date": task.dueDate,
-        Status: task.status,
-        "Submitted At": new Date().toISOString(),
-      }),
+      body: JSON.stringify({ _template: "table", _captcha: "false", _honey: "", ...payload }),
     });
     if (!res.ok) throw new Error(`FormSubmit failed: ${res.status}`);
     const json = await res.json();
@@ -1217,6 +1206,72 @@ async function notifyNewTask(task, endpoint) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function taskEmailFields(task) {
+  return {
+    "Task ID": task.id,
+    Title: forEmail(task.title),
+    Description: forEmail(task.description),
+    Project: task.project,
+    Category: task.category,
+    Assignee: forEmail(task.assignee),
+    Priority: task.priority,
+    "Due Date": task.dueDate,
+    Status: task.status,
+  };
+}
+
+function notifyNewTask(task, endpoint) {
+  return postToFormSubmit(endpoint, {
+    _subject: forEmail(`[CBK Project IT PMO] New task ${task.id}: ${task.title}`),
+    ...taskEmailFields(task),
+    "Submitted At": new Date().toISOString(),
+  });
+}
+
+function notifyTaskDone(task, endpoint, fromStatus) {
+  return postToFormSubmit(endpoint, {
+    _subject: forEmail(`[CBK Project IT PMO] Task completed ${task.id}: ${task.title}`),
+    ...taskEmailFields(task),
+    "Moved From": fromStatus,
+    "Completed On Time": task.dueDate >= todayISO() ? "Yes" : `No (due ${task.dueDate})`,
+    "Completed At": new Date().toISOString(),
+  });
+}
+
+/* ==========================================================================
+   "Task done" email: sent the moment a task moves into Done.
+   Sends go out one at a time in order, each task emails at most once per
+   page load, and there is a per-visit cap so the inbox can't be flooded.
+   ========================================================================== */
+const MAX_DONE_EMAILS_PER_VISIT = 20;
+const doneEmail = { sent: new Set(), queue: Promise.resolve(), count: 0 };
+
+function routeDoneTaskToEmail(task, fromStatus) {
+  const target = notificationTarget();
+  if (!target.ok) {
+    showToast(`${task.id} is done. Completion emails aren't set up yet.`, "warning", 6000);
+    return;
+  }
+  if (doneEmail.sent.has(task.id)) return;          // already emailed on this visit
+  if (doneEmail.count >= MAX_DONE_EMAILS_PER_VISIT) {
+    showToast(`Email limit reached for this visit, so no email for ${task.id}.`, "warning", 6000);
+    return;
+  }
+  doneEmail.sent.add(task.id);
+  doneEmail.count++;
+  const snapshot = { ...task };                      // email what was true at the moment it was completed
+  doneEmail.queue = doneEmail.queue.then(async () => {
+    try {
+      await notifyTaskDone(snapshot, target.url, fromStatus);
+      showToast(`Completion email sent for ${snapshot.id}`, "info");
+    } catch (err) {
+      doneEmail.sent.delete(snapshot.id);              // allow a retry by moving it to Done again
+      console.warn("Done notification failed:", err && err.message);
+      showToast(`${snapshot.id} is done, but the completion email failed`, "warning", 6000);
+    }
+  });
 }
 
 /* ==========================================================================
