@@ -458,7 +458,7 @@ button { cursor: pointer; }
 .toast-region {
   position: fixed;
   right: var(--space-4);
-  bottom: var(--space-4);
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px)); /* sits above the WhatsApp button */
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -516,6 +516,109 @@ button { cursor: pointer; }
 }
 .hotline a:hover { text-decoration: underline; }
 .support-actions { display: flex; justify-content: flex-end; margin-top: var(--space-5); }
+
+/* ==========================================================================
+   10. WhatsApp support chat: floating button + suggested-questions dialog
+   ========================================================================== */
+:root { --wa-green: #25d366; --wa-green-dark: #128c4b; }
+
+.wa-fab {
+  position: fixed;
+  right: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--wa-green);
+  color: #fff;
+  box-shadow: 0 6px 18px -4px rgba(18, 140, 75, .55);
+}
+.wa-fab:hover { background: var(--wa-green-dark); }
+.wa-fab svg { width: 32px; height: 32px; }
+
+.chat-dialog {
+  margin: auto var(--space-4) calc(92px + env(safe-area-inset-bottom, 0px)) auto;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+}
+.chat-dialog::backdrop { background: rgba(15, 30, 54, .2); }
+.chat-inner { display: flex; flex-direction: column; max-height: inherit; }
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--wa-green-dark);
+  color: #fff;
+}
+.chat-head .wa-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--wa-green);
+}
+.chat-head .wa-badge svg { width: 24px; height: 24px; }
+.chat-head h2 { font-size: 16px; font-weight: 700; }
+.chat-head p { font-size: 12px; opacity: .9; }
+.chat-head .icon-btn { color: #fff; }
+.chat-head .icon-btn:hover { background: rgba(255, 255, 255, .15); color: #fff; }
+
+.chat-body { padding: var(--space-4); overflow-y: auto; background: #f2f5f1; }
+.chat-bubble {
+  max-width: 90%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 0 10px 10px 10px;
+  background: var(--paper);
+  box-shadow: 0 1px 1px rgba(15, 30, 54, .08);
+}
+.chat-hint { margin: var(--space-3) 0 var(--space-2); font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.chat-queries { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.chat-queries a {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--wa-green);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--wa-green-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+.chat-queries a:hover { background: #e9f9ef; }
+.chat-own { margin-top: var(--space-4); }
+.chat-own label { display: block; margin-bottom: var(--space-1); font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.chat-own-row { display: flex; gap: var(--space-2); }
+.chat-own input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+}
+.chat-send {
+  flex: none;
+  padding: 8px var(--space-4);
+  border-radius: 999px;
+  background: var(--wa-green-dark);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.chat-send[aria-disabled="true"] { background: var(--ink-soft); pointer-events: none; }
+.chat-note { margin-top: var(--space-3); font-size: 11px; color: var(--ink-soft); }
 
 @media (prefers-reduced-motion: reduce) {
   .drawer[open] { animation: none; }
@@ -671,6 +774,41 @@ button { cursor: pointer; }
   </div>
 </dialog>
 
+<!-- WhatsApp support: floating button; clicking it runs openSupportChat() -->
+<button type="button" class="wa-fab" id="wa-fab" aria-haspopup="dialog" aria-controls="chat-dialog" aria-label="Chat with IT support on WhatsApp">
+  <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 6.9L3 29l6.5-2c1.9 1 4.1 1.6 6.5 1.6 7.2 0 13-5.7 13-12.8S23.2 3 16 3zm0 23.3c-2.1 0-4.1-.6-5.8-1.6l-.4-.2-3.9 1.2 1.2-3.7-.3-.4c-1.1-1.7-1.7-3.7-1.7-5.8C5.1 9.9 10 5.2 16 5.2s10.9 4.7 10.9 10.6S22 26.3 16 26.3zm6-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.1-1.2 2.8 1.2 3.2 1.4 3.4 2.4 3.6 5.8 5c2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5s.3-1.3.2-1.5-.3-.2-.6-.4z"/>
+  </svg>
+</button>
+
+<dialog class="chat-dialog" id="chat-dialog" aria-labelledby="chat-title">
+  <div class="chat-inner">
+    <div class="chat-head">
+      <span class="wa-badge" aria-hidden="true">
+        <svg viewBox="0 0 32 32" focusable="false"><path fill="#fff" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 6.9L3 29l6.5-2c1.9 1 4.1 1.6 6.5 1.6 7.2 0 13-5.7 13-12.8S23.2 3 16 3z"/></svg>
+      </span>
+      <div>
+        <h2 id="chat-title">IT support on WhatsApp</h2>
+        <p>Replies from the IT support team, <span id="chat-number"></span></p>
+      </div>
+      <button type="button" class="icon-btn" id="chat-close-btn" aria-label="Close WhatsApp support">×</button>
+    </div>
+    <div class="chat-body">
+      <p class="chat-bubble">Hi! What do you need help with? Pick a question and we'll open it in WhatsApp for you.</p>
+      <p class="chat-hint" id="chat-hint">Suggested questions</p>
+      <ul class="chat-queries" id="chat-queries" aria-labelledby="chat-hint"></ul>
+      <div class="chat-own">
+        <label for="chat-own-input">Or type your own question</label>
+        <div class="chat-own-row">
+          <input id="chat-own-input" type="text" maxlength="300" autocomplete="off" placeholder="Describe the issue">
+          <a class="chat-send" id="chat-own-send" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Send</a>
+        </div>
+      </div>
+      <p class="chat-note">Opens WhatsApp in a new tab. Don't share passwords or customer data in chat.</p>
+    </div>
+  </div>
+</dialog>
+
 <!-- Toast region, announced politely to screen readers -->
 <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
 
@@ -692,6 +830,16 @@ const NOTIFY_TIMEOUT_MS = 15000;
 const NOTIFY_MIN_INTERVAL_MS = 10000; // anti-flood: at most one email every 10 s
 const IT_SUPPORT_HOTLINE = "12345678";
 const SUPPORT_PROMPT_DELAY_MS = 10000; // show the support prompt after 10 s of viewing
+const WHATSAPP_NUMBER = "6512345678";   // country code + number, digits only (wa.me format)
+const WHATSAPP_GREETING = "Hi IT Support (CBK Project IT PMO portal): ";
+const SUPPORT_QUERIES = Object.freeze([
+  "I can't log in or need a password reset",
+  "My VPN or remote access token isn't working",
+  "I need access to a system or shared folder",
+  "My laptop or VDI is slow or not working",
+  "I want to report a suspected phishing email",
+  "I have a question about a task on the PMO board",
+]);
 
 /* ==========================================================================
    Reference data (frozen so nothing can tamper with it at runtime)
@@ -1321,14 +1469,76 @@ function startSupportPrompt() {
 
 function showSupportPrompt() {
   const drawer = document.getElementById("task-drawer");
-  // Don't interrupt someone filling in the add-task form; wait until they close it
-  if (drawer.open) {
-    drawer.addEventListener("close", showSupportPrompt, { once: true });
-    return;
+  const chat = document.getElementById("chat-dialog");
+  // Don't interrupt someone using the add-task form or WhatsApp chat; wait until they close it
+  for (const busy of [drawer, chat]) {
+    if (busy.open) {
+      busy.addEventListener("close", showSupportPrompt, { once: true });
+      return;
+    }
   }
   const dialog = document.getElementById("support-dialog");
   if (!dialog.open) dialog.showModal();
   document.getElementById("support-close-btn").focus();
+}
+
+/* ==========================================================================
+   WhatsApp support chat
+   Click hook on the floating button opens a dialog of suggested questions;
+   each one is a wa.me link that opens WhatsApp with the question pre-filled.
+   ========================================================================== */
+function whatsappLink(message) {
+  const text = sanitizeText(WHATSAPP_GREETING + message).slice(0, 500);
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
+
+function formatPhone(digits) {
+  // 6512345678 -> +65 1234 5678
+  return digits.length === 10 ? `+${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}` : `+${digits}`;
+}
+
+function renderSupportQueries() {
+  document.getElementById("chat-queries").innerHTML = SUPPORT_QUERIES.map(q =>
+    `<li><a href="${escapeHtml(whatsappLink(q))}" target="_blank" rel="noopener noreferrer">${escapeHtml(q)}</a></li>`
+  ).join("");
+}
+
+function updateOwnQuestionLink() {
+  const text = sanitizeText(document.getElementById("chat-own-input").value);
+  const send = document.getElementById("chat-own-send");
+  send.href = text ? whatsappLink(text) : "#";
+  send.setAttribute("aria-disabled", String(!text));
+}
+
+// Hook: runs when the WhatsApp button is clicked
+function openSupportChat() {
+  const chat = document.getElementById("chat-dialog");
+  if (!chat.open) chat.showModal();
+  const first = chat.querySelector(".chat-queries a");
+  if (first) first.focus();
+}
+
+function closeSupportChat() { document.getElementById("chat-dialog").close(); }
+
+function initSupportChat() {
+  document.getElementById("chat-number").textContent = formatPhone(WHATSAPP_NUMBER);
+  renderSupportQueries();
+  updateOwnQuestionLink();
+
+  document.getElementById("wa-fab").addEventListener("click", openSupportChat);
+  document.getElementById("chat-close-btn").addEventListener("click", closeSupportChat);
+  document.getElementById("chat-own-input").addEventListener("input", updateOwnQuestionLink);
+  document.getElementById("chat-own-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.currentTarget.value.trim()) document.getElementById("chat-own-send").click();
+  });
+  const chat = document.getElementById("chat-dialog");
+  chat.addEventListener("click", e => {
+    if (e.target === chat) closeSupportChat();                 // backdrop click
+    if (e.target.closest(".chat-send[aria-disabled='true']")) { e.preventDefault(); return; }
+    if (e.target.closest(".chat-queries a, .chat-send[aria-disabled='false']")) {
+      setTimeout(closeSupportChat, 0);                           // close after WhatsApp opens
+    }
+  });
 }
 
 /* ==========================================================================
@@ -1373,6 +1583,7 @@ function init() {
 
   seedTasks();
   renderBoard();
+  initSupportChat();
   startSupportPrompt();
 }
 
