@@ -20,16 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Publish index.html to gh-pages
+      - name: Publish site pages to gh-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          cp index.html /tmp/index.html
+          mkdir -p /tmp/site
+          cp index.html index-v2.html /tmp/site/
           git fetch origin gh-pages
           git switch gh-pages
-          cp /tmp/index.html index.html
+          cp /tmp/site/*.html .
           touch .nojekyll
-          git add index.html .nojekyll
+          git add index.html index-v2.html .nojekyll
           if git diff --cached --quiet; then
             echo "Site already up to date."
           else
