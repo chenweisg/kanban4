@@ -1196,7 +1196,9 @@ async function postToFormSubmit(endpoint, payload) {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       signal: controller.signal,
       credentials: "omit",
-      referrerPolicy: "no-referrer",
+      // FormSubmit needs to know which page sent the form, so send this page's address (HTTPS only).
+      // Everything else on the page keeps the stricter no-referrer policy.
+      referrerPolicy: "no-referrer-when-downgrade",
       body: JSON.stringify({ _template: "table", _captcha: "false", _honey: "", ...payload }),
     });
     const json = await res.json().catch(() => null);
@@ -1248,8 +1250,11 @@ function emailFailureMessage(err, prefix) {
   if (/activat/i.test(msg)) {
     return `${prefix}, but email isn't active yet. Open the "Activate Form" email FormSubmit sent to your inbox (check spam), then try again.`;
   }
-  if (/web server|HTML file/i.test(msg) || location.protocol === "file:") {
+  if (location.protocol === "file:") {
     return `${prefix}, but emails can't be sent from a local file. Use the website link instead.`;
+  }
+  if (/web server|HTML file/i.test(msg)) {
+    return `${prefix}, but FormSubmit couldn't tell which website sent the email. Refresh the page (Ctrl+F5) and try again.`;
   }
   if (err && err.name === "AbortError") return `${prefix}, but the email service didn't respond in time.`;
   if (err instanceof TypeError) return `${prefix}, but the email service couldn't be reached. Check your connection.`;
