@@ -13,7 +13,7 @@
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src https://formsubmit.co; form-action 'none'; base-uri 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
-<title>UOB IT PMO Kanban</title>
+<title>CBK Project IT PMO Kanban</title>
 <style>
 /* ==========================================================================
    1. Design tokens
@@ -151,6 +151,39 @@ button { cursor: pointer; }
 .legend .overdue strong { color: var(--danger); }
 
 .demo-note { margin-top: var(--space-3); font-size: 12px; color: var(--ink-soft); }
+
+/* Headline KPIs: % done, % overdue, % in backlog */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.kpi {
+  background: var(--paper);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+.kpi-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.kpi-value {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+}
+.kpi-value small { font-size: 18px; font-weight: 600; }
+.kpi-sub { font-size: 12px; color: var(--ink-soft); }
+.meter { height: 6px; margin-top: var(--space-2); border-radius: 999px; background: var(--ground-deep); overflow: hidden; }
+.meter span { display: block; height: 100%; border-radius: inherit; transition: width .3s ease; }
+.kpi.is-alert .kpi-value { color: var(--danger); }
+@media (max-width: 560px) {
+  .kpis { grid-template-columns: minmax(0, 1fr); }
+  .kpi-value { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) { .meter span { transition: none; } }
 
 /* ==========================================================================
    4. Filters — an inline row, not a panel
@@ -462,7 +495,7 @@ button { cursor: pointer; }
 <header class="app-header wrap">
   <div class="masthead">
     <div class="wordmark">
-      <h1>UOB IT PMO Kanban</h1>
+      <h1>CBK Project IT PMO Kanban</h1>
       <p>Internal demo and training board</p>
     </div>
     <button type="button" class="btn btn-primary" id="open-form-btn" aria-haspopup="dialog" aria-controls="task-drawer">+ Add task</button>
@@ -470,6 +503,7 @@ button { cursor: pointer; }
 
   <section class="portfolio" aria-labelledby="portfolio-label">
     <h2 id="portfolio-label" class="visually-hidden" hidden>Portfolio summary</h2>
+    <div class="kpis" id="kpis"></div>
     <div class="bar" id="portfolio-bar" role="img"></div>
     <ul class="legend" id="summary"></ul>
   </section>
@@ -770,6 +804,24 @@ function renderSummary() {
   const total = state.tasks.length;
   const counts = STATUSES.map(s => ({ status: s, n: state.tasks.filter(t => t.status === s).length }));
   const overdue = state.tasks.filter(isOverdue).length;
+  const count = s => counts.find(c => c.status === s).n;
+  const pct = n => (total ? Math.round((n / total) * 100) : 0);
+
+  // Headline KPIs: completion, overdue and backlog as a share of all tasks
+  const kpis = [
+    { label: "Done", n: count("Done"), color: "var(--st-done)", sub: "completed" },
+    { label: "Overdue", n: overdue, color: "var(--danger)", sub: "past due and not done", alert: overdue > 0 },
+    { label: "Backlog", n: count("Backlog"), color: "var(--st-backlog)", sub: "not yet scheduled" },
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(k => `
+    <div class="kpi${k.alert ? " is-alert" : ""}">
+      <p class="kpi-label">${escapeHtml(k.label)}</p>
+      <p class="kpi-value">${pct(k.n)}<small>%</small></p>
+      <p class="kpi-sub">${k.n} of ${total} tasks ${escapeHtml(k.sub)}</p>
+      <div class="meter" role="meter" aria-label="${escapeHtml(k.label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct(k.n)}">
+        <span style="width:${pct(k.n)}%;background:${k.color}"></span>
+      </div>
+    </div>`).join("");
 
   const bar = document.getElementById("portfolio-bar");
   bar.innerHTML = counts
@@ -943,7 +995,7 @@ async function notifyNewTask(task, endpoint) {
       credentials: "omit",
       referrerPolicy: "no-referrer",
       body: JSON.stringify({
-        _subject: forEmail(`[UOB IT PMO] New task ${task.id}: ${task.title}`),
+        _subject: forEmail(`[CBK Project IT PMO] New task ${task.id}: ${task.title}`),
         _template: "table",
         _captcha: "false",
         _honey: "",
